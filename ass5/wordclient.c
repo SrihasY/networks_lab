@@ -92,7 +92,8 @@ int main()
 					return 0;
 				}
 				i++;
-				write(recvfd,buf,sizeof(buf));
+				strcat(buf,"\n");
+				write(recvfd,buf,strlen(buf));
 				sprintf(word,"WORD_%d",i);
 				numbytes=sendto(cli_sockfd,word,strlen(word),0,
 		    	(struct sockaddr*)&serv_addr,serv_size);
