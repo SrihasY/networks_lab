@@ -1,3 +1,7 @@
+//Group 27
+//18CS10057- Yarlagadda Srihas
+//18CS30047- Somnath Jena
+//Server File
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
@@ -68,6 +72,7 @@ int main(void) {
         char wformat[] = "WRONG_FILE_FORMAT";
         sendto(serv_sockfd, wformat, strlen(wformat)+1, 0, (struct sockaddr *) &cli_addr, clisize);
         printf("Wrong file format. Closing connection...\n");
+        fclose(msgfile);
         close(serv_sockfd);
         return 0;
     }
@@ -80,6 +85,7 @@ int main(void) {
         //receive the next commmand from the client
         if(recvfrom(serv_sockfd, buf, MAXFILE, 0, (struct sockaddr *) &cli_addr, &clisize) < 0) {
             printf("Read from client failed. Error:%d. Exiting...\n", errno);
+            fclose(msgfile);
             close(serv_sockfd);
             exit(1);
         }
@@ -96,6 +102,7 @@ int main(void) {
             char wmismatch[] = "INCORRECT_COMMAND";
             sendto(serv_sockfd, wmismatch, strlen(wmismatch)+1, 0, (struct sockaddr *) &cli_addr, clisize);
             printf("Incorrect command. Closing connection...\n");
+            fclose(msgfile);
             close(serv_sockfd);
             return 0;
         }
@@ -106,6 +113,7 @@ int main(void) {
             char ueof[] = "UNEXPECTED_EOF";
             sendto(serv_sockfd, ueof, strlen(ueof)+1, 0, (struct sockaddr *) &cli_addr, clisize);
             printf("Unexpected end of file. Closing connection...\n");
+            fclose(msgfile);
             close(serv_sockfd);
             exit(1);
         } else {
@@ -119,6 +127,7 @@ int main(void) {
         wordcount++;
     }
     printf("Process completed. Closing connection and exiting...\n");
+    fclose(msgfile);
     close(serv_sockfd);
     return 0;
 }
