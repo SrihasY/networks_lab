@@ -59,10 +59,16 @@ int main(void) {
     printf("Sending file request...");
 
     //send the filename to the server
-    if(send(cli_sockfd, filename, strlen(filename)+1, 0)==-1) {
-        printf("\nThe file request could not be sent. Error:%d. Exiting...\n", errno);
-        close(cli_sockfd);
-		exit(1);
+    char* file_sent = filename; 
+    char* end = filename+strlen(filename)+1;
+    int cur_sent;
+    while(file_sent!=end) {
+        if((cur_sent=send(cli_sockfd, file_sent, end-file_sent, 0))==-1) {
+            printf("\nThe file request could not be sent. Error:%d. Exiting...\n", errno);
+            close(cli_sockfd);
+		    exit(1);
+        }
+        file_sent+=cur_sent;
     }
 
     printf("file request sent.\n");
