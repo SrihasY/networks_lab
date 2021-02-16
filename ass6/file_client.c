@@ -1,3 +1,7 @@
+//Group 27
+//18CS10057- Yarlagadda Srihas
+//18CS30047- Somnath Jena
+//Server File
 #include<stdio.h>
 #include<stdlib.h>
 #include<unistd.h>
@@ -12,7 +16,7 @@
 #include<fcntl.h>
 
 #define BUFSIZE 60
-#define MAXFILE 100
+#define MAXFILE 256
 #define SERV_PORT 1200
 
 int main(void) {

@@ -30,6 +30,8 @@ int main()
 	int new_sockfd;
 	//string to store filename sent by client
 	char filename[MAXFILE];
+	//buffer to store filename sent by client
+	char filename_buf[MAXFILE];
 	//buffer to send contents of file & other responses
 	char buf[MAXBUF];
 	//file pointer to input file
@@ -38,7 +40,7 @@ int main()
 	char cli_ip[INET_ADDRSTRLEN];
 	//file descriptor for filename sent
 	int file_fd;
-	int recv_size, sent_size;
+	int recv_size, sent_size, read_size;
 
 	//open a socket on server side
 	if((serv_sockfd=socket(PF_INET,SOCK_STREAM,0))<0)
@@ -82,8 +84,18 @@ int main()
 		//inet_ntop(AF_INET,&(cli_addr.sin_addr),cli_ip,sizeof(cli_ip));
 		//printf("Got connection from %s\n",cli_ip);
 
+		filename[0]='\0';//initialize filename to null string
 		//receive filename from client
-		recv_size = recv(new_sockfd, filename, MAXFILE, 0);
+		do{
+			recv_size = recv(new_sockfd, filename_buf, MAXFILE, 0);
+			if(recv_size==0)
+				break;
+			//concatenate current filename_buf content to filename
+			strcat(filename,filename_buf);
+			//if null reached then filename read completely
+			if(filename_buf[recv_size-1]=='\0')
+				break;
+		}while(1);
 		//if no filename received it means client has closed connection
 		if(!recv_size)
 		{
@@ -91,22 +103,27 @@ int main()
 			close(new_sockfd);
 			continue;
 		}
-		printf("Received filename. Opening file..%s\n",filename);
+		printf("Received filename. Opening file.. %s\n",filename);
 		//opening file
 		file_fd = open(filename,O_RDONLY,0666);
 		//file not found
 		if(file_fd<0)
 		{
 			//close current connection
+			printf("File %s not found. Closing current connection..\n",filename);
 			close(new_sockfd);
 			continue;
 		}
 
 		//read from file in chunks of MAXBUF size
-		while(read(file_fd,buf,MAXBUF)>0)
+		while((read_size=read(file_fd,buf,MAXBUF))>0)
 		{
 			//send the current chunk
-			sent_size = send(new_sockfd,buf,sizeof(buf)+1,0);			
+			sent_size=0;
+			while(sent_size!=read_size)
+			{
+				sent_size += send(new_sockfd,buf+sent_size,read_size-sent_size,0);
+			}			
 		}
 		close(file_fd);   //close file descriptor of the reading file
 		close(new_sockfd);//close socket file descriptor
