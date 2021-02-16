@@ -81,7 +81,7 @@ int main(void) {
     int recv_bytes;
     if(((recv_bytes=recv(cli_sockfd, buf, BUFSIZE, 0))>0)) {
         //create the output file
-        recvfd = open("received.txt", O_CREAT | O_WRONLY, 0666);
+        recvfd = open("received.txt", O_CREAT | O_WRONLY | O_TRUNC, 0666);
         if(recvfd==-1) {
             printf("The output file could not be created. Error:%d. Exiting...\n", errno);
             close(cli_sockfd);
