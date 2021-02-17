@@ -1,7 +1,7 @@
 //Group 27
 //18CS10057- Yarlagadda Srihas
 //18CS30047- Somnath Jena
-//Server File
+//Client File
 #include<stdio.h>
 #include<stdlib.h>
 #include<unistd.h>
@@ -66,6 +66,7 @@ int main(void) {
     char* file_sent = filename; 
     char* end = filename+strlen(filename)+1;
     int cur_sent;
+    //send repeatedly until the full filename is transferred
     while(file_sent!=end) {
         if((cur_sent=send(cli_sockfd, file_sent, end-file_sent, 0))==-1) {
             printf("\nThe file request could not be sent. Error:%d. Exiting...\n", errno);
