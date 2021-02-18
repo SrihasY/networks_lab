@@ -88,35 +88,37 @@ int main(void) {
             close(cli_sockfd);
 		    exit(1);
         }
-        //initialize the word flag
-        in_word = false;
-        //read the data in chunks
-        do {
-            //write the chunk to the output file
-            if(write(recvfd, buf, recv_bytes)==-1) {
-                printf("Data could not be written to the output file. Error:%d. Exiting...\n", errno);
-                close(cli_sockfd);
-                close(recvfd);
-		        exit(1);
-            }
-            //parse the chunk to count words
-            for(int i=0; i<recv_bytes; i++) {
-                char c = buf[i];
-                if(c==','||c==';'||c==':'||c=='.'||c=='\t'||c=='\n'||c==' ') {
-                    //unset word flag
-                    in_word=false;
-                } else if(!in_word){
-                    //increment word count
-                    word_count++;
-                    //set word flag
-                    in_word=true;
+        //check for an empty file
+        if(!(recv_bytes==1 && buf[0]=='\0')) {
+            //initialize the word flag
+            in_word = false;
+            //read the data in chunks
+            do {
+                //write the chunk to the output file
+                if(write(recvfd, buf, recv_bytes)==-1) {
+                    printf("Data could not be written to the output file. Error:%d. Exiting...\n", errno);
+                    close(cli_sockfd);
+                    close(recvfd);
+                    exit(1);
                 }
-            }
-            //update the total byte count
-            byte_count+=recv_bytes;
-        } while((recv_bytes=recv(cli_sockfd, buf, BUFSIZE, 0))>0);
+                //parse the chunk to count words
+                for(int i=0; i<recv_bytes; i++) {
+                    char c = buf[i];
+                    if(c==','||c==';'||c==':'||c=='.'||c=='\t'||c=='\n'||c==' ') {
+                        //unset word flag
+                        in_word=false;
+                    } else if(!in_word){
+                        //increment word count
+                        word_count++;
+                        //set word flag
+                        in_word=true;
+                    }
+                }
+                //update the total byte count
+                byte_count+=recv_bytes;
+            } while((recv_bytes=recv(cli_sockfd, buf, BUFSIZE, 0))>0);            
+        }
     }
-
     if(recv_bytes==-1) {
         //error while receiving data
         printf("There was an error receiving data from the server. Error:%d. Exiting...\n", errno);
@@ -131,7 +133,7 @@ int main(void) {
         exit(1);
     } else {
         //file received successfully
-        printf("The file transfer is successful. Size of the file = %d bytes, no. of words = %d\n", 
+        printf("The file transfer is successful. Size of the file = %d bytes, no. of words = %d.\n", 
         byte_count, word_count);
     }
     close(cli_sockfd);

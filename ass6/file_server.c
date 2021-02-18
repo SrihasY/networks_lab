@@ -41,6 +41,8 @@ int main()
 	//file descriptor for filename sent
 	int file_fd;
 	int recv_size, sent_size, read_size;
+	//flag to check if file is empty
+	int file_empty=1;
 
 	//open a socket on server side
 	if((serv_sockfd=socket(PF_INET,SOCK_STREAM,0))<0)
@@ -85,6 +87,7 @@ int main()
 		//printf("Got connection from %s\n",cli_ip);
 
 		filename[0]='\0';//initialize filename to null string
+		file_empty=1;//set file_empty flag to 1
 		//receive filename from client
 		do{
 			recv_size = recv(new_sockfd, filename_buf, MAXFILE, 0);
@@ -118,12 +121,20 @@ int main()
 		//read from file in chunks of MAXBUF size
 		while((read_size=read(file_fd,buf,MAXBUF))>0)
 		{
+			//set file_empty flag to 0
+			file_empty=0;
 			//send the current chunk
 			sent_size=0;
 			while(sent_size!=read_size)
 			{
 				sent_size += send(new_sockfd,buf+sent_size,read_size-sent_size,0);
 			}			
+		}
+		//if file_empty=1 and last read_size is 0
+		if(file_empty&&!read_size)
+		{
+			//send a null string if file is empty
+			send(new_sockfd,"\0",1,0);
 		}
 		close(file_fd);   //close file descriptor of the reading file
 		close(new_sockfd);//close socket file descriptor
