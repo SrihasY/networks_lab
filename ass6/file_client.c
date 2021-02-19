@@ -68,8 +68,7 @@ int main(void) {
     int cur_sent;
     //send repeatedly until the full filename is transferred
     while(file_sent!=end) {
-        //send the filename in chunks of upto BUFSIZE
-        if((cur_sent=send(cli_sockfd, file_sent, BUFSIZE, 0))==-1) {
+        if((cur_sent=send(cli_sockfd, file_sent, end-file_sent, 0))==-1) {
             printf("\nThe file request could not be sent. Error:%d. Exiting...\n", errno);
             close(cli_sockfd);
 		    exit(1);
