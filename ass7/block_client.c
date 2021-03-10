@@ -31,13 +31,13 @@ int main(void) {
     //integer to store the size of the last block
     int lblock_size;
     //integer to store the size of the file to be received
-    int fsize;
+    int32_t fsize;
     //server socket address struct
 	struct sockaddr_in serv_addr;
     //string to hold filename to send
 	char filename[MAXFILE];
-    //string to store the first message sent by the server
-    char message[MAX_MESSAGE];
+    //char to store the first single-char message from the server
+    char message;
     //buffer to store a block of received data
 	char buf[BLOCK_SIZE];
 
@@ -49,7 +49,7 @@ int main(void) {
 
     //set up the socket address data of server
 	serv_addr.sin_family = AF_INET;                 
-	serv_addr.sin_port   = ntohs(SERV_PORT);
+	serv_addr.sin_port = ntohs(SERV_PORT);
 	serv_addr.sin_addr.s_addr = inet_addr("127.0.0.1");
 	memset(serv_addr.sin_zero, '\0', sizeof(serv_addr.sin_zero));
 
@@ -86,33 +86,26 @@ int main(void) {
     int recv_bytes;
     //THIS RECV MAY RECEIVE BITS FROM THE FIRST BLOCK, SINCE THERE IS NO ACK/MSG_WAITALL
     //TBD
-    while(((recv_bytes=recv(cli_sockfd, buf, MAX_MESSAGE, 0))>0)) {
-        strcat(message, buf);
-        if(buf[recv_bytes-1]=='\0') {
-            break;
-        }
-    }
+    recv_bytes = recv(cli_sockfd, &message, 1, MSG_WAITALL);
 
-    if(recv_bytes<0) {
+    if(recv_bytes<1) {
         printf("\nThe server message could not be received. Error:%d. Exiting...\n", errno);
         close(cli_sockfd);
 		exit(1);
     } else {
         printf("server message received.\n");
-        if(message[0]=='L') {
-            //trim the message to retrieve only file size
-            memmove(message, message+1, strlen(message));
-            //convert the file size into integer
-            char* endptr;
-            long flong = strtol(message, endptr, 10);
-            if(endptr == message || *endptr!='\0' || errno == ERANGE || flong > INT_MAX) {
-                printf("The file size received is invalid. Exiting...\n");
+        if(message=='L') {
+            //receive the file size as an integer
+            int recv_bytes = recv(cli_sockfd, &fsize, 4, MSG_WAITALL);
+            if(recv_bytes<4) {
+                //error receiving file size
+                printf("There was an error receiving the file size. Error %d. Exiting...\n", errno);
                 close(cli_sockfd);
-		        exit(1);
+                exit(1);
             }
-            //update the file size variable
-            fsize = (int) flong;
-        } else if(message[0]=='E' && strlen(message)==1) {
+            printf("File size received.\n");
+            fsize = (int32_t) ntohl(fsize);
+        } else if(message=='E') {
             //if 'E' message is received, the file was not found
             printf("The server returned an error message - File Not Found. Exiting...\n");
             close(cli_sockfd);
@@ -184,7 +177,7 @@ int main(void) {
     close(recvfd);
 
     //file received successfully
-    printf("The file transfer is successful. Total number of blocks received = %d bytes, Last block size = %d.\n",
+    printf("The file transfer is successful. Total number of blocks received = %d, Last block size = %d.\n",
           block_count, lblock_size);
     return 0;
 }
