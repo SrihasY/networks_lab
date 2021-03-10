@@ -14,6 +14,7 @@
 #include <fcntl.h>
 #include <signal.h>
 #include <sys/stat.h>
+#include <limits.h>
 
 #define SERVPORT 1200
 #define MAXFILE 1000
@@ -147,14 +148,19 @@ int main()
 		else
 		{
 			stat(filename,&stbuf);
+			//get size of the file
 			FSIZE=stbuf.st_size;
+			//send message L to client
 			send(new_sockfd,"L",1,0);
-			int FSIZE_n=htonl(FSIZE);
+			//store file size in a 4 byte variable FSIZE
+			int32_t FSIZE_n=(int32_t)htonl(FSIZE);
+			//cast to char* buffer
 			fsize_buf=(char*)&FSIZE_n;
 			sent_size=0;
-			while(sent_size!=sizeof(int))
+			//send file size to client
+			while(sent_size!=4)
 			{
-				sent_size+=send(new_sockfd,fsize_buf+sent_size,sizeof(int)-sent_size,0);
+				sent_size+=send(new_sockfd,fsize_buf+sent_size,4-sent_size,0);
 			}
 		}
 
