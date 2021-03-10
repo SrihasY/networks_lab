@@ -84,8 +84,6 @@ int main(void) {
 
     //receive the message from the server
     int recv_bytes;
-    //THIS RECV MAY RECEIVE BITS FROM THE FIRST BLOCK, SINCE THERE IS NO ACK/MSG_WAITALL
-    //TBD
     recv_bytes = recv(cli_sockfd, &message, 1, MSG_WAITALL);
 
     if(recv_bytes<1) {
@@ -103,8 +101,15 @@ int main(void) {
                 close(cli_sockfd);
                 exit(1);
             }
-            printf("File size received.\n");
+            //convert the received file size to host order
             fsize = (int32_t) ntohl(fsize);
+            if(fsize<0) {
+                printf("Invalid file size received. Exiting...\n");
+                close(cli_sockfd);
+                exit(1);
+            } else {
+                printf("File size received.\n");
+            }
         } else if(message=='E') {
             //if 'E' message is received, the file was not found
             printf("The server returned an error message - File Not Found. Exiting...\n");
@@ -148,6 +153,7 @@ int main(void) {
             //set recv bytes to block size
             expected = BLOCK_SIZE;
         }
+        //receive the block
         recv_bytes = recv(cli_sockfd, buf, expected, MSG_WAITALL);
         if(recv_bytes < 0) {
             printf("Error while receiving data. Exiting...\n");
