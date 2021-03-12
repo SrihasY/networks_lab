@@ -139,7 +139,15 @@ int main()
 		if(file_fd<0)
 		{
 			//send error message
-			send(new_sockfd,"E",1,0);
+			sent_size=0;
+			while((sent_size=send(new_sockfd,"E",1,0))<1)
+			{
+				if(sent_size==-1)
+				{
+					printf("Error in sending E. Error:%d. Exitting..\n",errno);
+					exit(1);					
+				}
+			}
 			//close current connection
 			printf("File %s not found. Closing current connection..\n",filename);
 			close(new_sockfd);
@@ -151,7 +159,15 @@ int main()
 			//get size of the file
 			FSIZE=stbuf.st_size;
 			//send message L to client
-			send(new_sockfd,"L",1,0);
+			sent_size=0;
+			while((sent_size=send(new_sockfd,"L",1,0))<1)
+			{
+				if(sent_size==-1)
+				{
+					printf("Error in sending L. Error:%d. Exitting..\n",errno);
+					exit(1);					
+				}
+			}
 			//store file size in a 4 byte variable FSIZE
 			int32_t FSIZE_n=(int32_t)htonl(FSIZE);
 			//cast to char* buffer
