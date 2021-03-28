@@ -63,7 +63,8 @@ int main(void) {
         struct user_entry* current = &(user_info.table[i]);
         scanf("%s %s %hu", current->username, current->ip, &current->port);
     }
-
+    start_server();
+    
     fd_set readfds, writefds;
     FD_ZERO(&readfds);
     FD_ZERO(&writefds);
