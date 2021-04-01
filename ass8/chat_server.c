@@ -12,9 +12,8 @@
 #include<sys/select.h>
 
 #include "chat.h"
-#define MAX_MSG 1000
-#define MAX_IN 1200
 
+char server_ip[16];
 uint16_t server_port;
 int serv_sockfd;
 struct sockaddr_in serv_addr;
@@ -24,6 +23,13 @@ struct user_info user_info;
 int max(int a,int b)
 {
 	if(a>b)
+		return a;
+	return b;
+}
+
+time_t min_time(time_t a, time_t b)
+{
+	if(a<b)
 		return a;
 	return b;
 }
@@ -38,7 +44,7 @@ void start_server(void) {
     //set up the server address structure
 	serv_addr.sin_family = AF_INET;                      		
 	serv_addr.sin_port = htons(server_port);                	
-	inet_pton(AF_INET,"127.0.0.1",&(serv_addr.sin_addr));		
+	inet_pton(AF_INET,server_ip,&(serv_addr.sin_addr));		
 	memset(serv_addr.sin_zero, '\0', sizeof(serv_addr.sin_zero));  
 
     //retrieve a socket for the server
@@ -65,20 +71,32 @@ void start_server(void) {
 	printf("Receiving at port %d.\n", server_port);
 }
 
-int add_fds(fd_set* set) {
+void add_fds(fd_set* set, int* maxfd, struct timeval* min_timeout) {
 	FD_ZERO(set);
     FD_SET(serv_sockfd,set);
     FD_SET(STDIN_FILENO,set);
-    int maxfd = serv_sockfd;
+    *maxfd = serv_sockfd;
+	min_timeout->tv_sec = LONG_MAX;
+	struct timeval current_time;
+	gettimeofday(&current_time, NULL);
     for(int i=0;i<user_info.number_peers;i++)
     {
-    	if(user_info.table[i].cli_sockfd>0)
+		struct user_entry* current_user = &(user_info.table[i]);
+    	if(current_user->cli_sockfd>0)
     	{
-    		FD_SET(user_info.table[i].cli_sockfd,set);
-    		maxfd = max(maxfd,user_info.table[i].cli_sockfd);
+			if(current_time.tv_sec >= current_user->timeout.tv_sec) {
+				close(current_user->cli_sockfd);
+				current_user->cli_sockfd = -1;
+			} else {
+    			FD_SET(user_info.table[i].cli_sockfd,set);
+    			*maxfd = max(*maxfd,user_info.table[i].cli_sockfd);
+				min_timeout->tv_sec = min_time(min_timeout->tv_sec, current_user->timeout.tv_sec - current_time.tv_sec);
+			}
     	}
     }
-    return maxfd+1;
+	min_timeout->tv_usec=0;
+	*maxfd = *maxfd+1;
+    return;
 }
 
 void accept_connection(void) {
@@ -90,59 +108,76 @@ void accept_connection(void) {
     	printf("Error in accepting new connection. Error:%d. Exiting..\n",errno);
     	exit(1);
     }
+	int valid=0;
     for(int i=0;i<user_info.number_peers;i++)
     {
     	struct user_entry* current = &(user_info.table[i]);
     	if(cli_addr.sin_addr.s_addr==current->peer_addr.sin_addr.s_addr)
     	{
     		current->cli_sockfd = new_sockfd;
+			reset_timeout(&current->timeout);
+			valid=1;
 			break;
-    	} else {
-			printf("Unknown client attempted to connect, rejected.\n");
-		}
+    	}
     }
+	if(!valid) {
+		close(new_sockfd);
+		printf("Unknown client attempted to connect, rejected.\n");
+	}		
 }
 
-void read_stdinput(char* std_input, char* buf, char* user, char* msg) {
+void read_stdinput(char* buf, char* user, char* msg) {
 	int read_size;
 	int len=0;
-    if((read_size=read(STDIN_FILENO,buf,MAX_BUF))>0)
-    {
-    	strcpy(std_input,buf);
-    	len+=read_size;
-    }
+	char c;
+    while((c=getchar())!='\n' && len<MAX_BUF) {
+		buf[len++] = c;
+	}
+	if(len==MAX_BUF && c!='\n') {
+		printf("Message input was longer than %d characters, it will be clipped.", MAX_BUF);
+		buf[len-1]=='\n';
+		while((c=getchar())!='\n') {
+			;
+		}
+	} else {
+		buf[len++]='\n';
+	}
     int i;
     for(i=0;i<len;i++)
     {
-    	if(std_input[i]=='/')
-    		break;
-    	user[i]=std_input[i];
+    	if(buf[i]=='/') {
+			break;
+		}	
+    	user[i]=buf[i];
     }
     user[i]='\0';
     int j=0;
     i++;
     for(;i<len;i++)
     {
-    	msg[j]=std_input[i];
+    	msg[j]=buf[i];
     	j++;
     }
     msg[j]='\0';
 }
+
 int main(void) {
+	char filename[256];
     printf("**** Welcome to the P2P chat application ****\n");
-	printf("Enter the server port: ");
-	scanf("%hu", &server_port);
-    printf("Enter the number of peers: ");
-    scanf("%d", &(user_info.number_peers));
+	printf("Enter the filename to retrieve user_info and server details: ");
+	scanf("%s", filename);
+	FILE* uinfofile = fopen(filename, "r");
+	fscanf(uinfofile,"%s", server_ip);
+	fscanf(uinfofile,"%hu", &server_port);
+    fscanf(uinfofile,"%d", &(user_info.number_peers));
     for(int i=0; i<user_info.number_peers; i++) {
-        printf("Enter the username, IP address and port number of peer %d (space separated):\n", i+1);
         struct user_entry* current = &(user_info.table[i]);
-        scanf("%s %s %hu", current->username, current->ip, &current->port);
+        fscanf(uinfofile,"%s %s %hu", current->username, current->ip, &current->port);
         current->cli_sockfd = -1;
 		current->peer_addr.sin_family = AF_INET;                 
 		current->peer_addr.sin_port = htons(current->port);
 		if((current->peer_addr.sin_addr.s_addr = inet_addr(current->ip))==-1) {
-			printf("Invalid IP address entered. Exiting...\n");
+			printf("Invalid IP address in user_info. Exiting...\n");
 			exit(-1);
 		}
 		memset(current->peer_addr.sin_zero, '\0', sizeof(current->peer_addr.sin_zero));
@@ -153,22 +188,24 @@ int main(void) {
     fd_set readfds;
 
     int maxfd;
+	struct timeval min_timeout;
     int ready;
-    char buf[MAX_BUF];
-    char msg[MAX_MSG];
+    char buf[MAX_BUF+1];
+    char msg[MAX_BUF];
     char user[MAX_NAME];
-    char std_input[MAX_IN];
     int read_size,sent_size;
     while(1){
-		maxfd = add_fds(&readfds);
-    	ready = select(maxfd,&readfds,NULL,NULL,NULL);
+		add_fds(&readfds, &maxfd, &min_timeout);
+    	ready = select(maxfd,&readfds,NULL,NULL,&min_timeout);
+		if(ready<=0)
+			continue;
     	if(FD_ISSET(serv_sockfd,&readfds))
     	{
 			accept_connection();
     	}
     	else if(FD_ISSET(STDIN_FILENO,&readfds))
     	{
-    		read_stdinput(std_input, buf, user, msg);
+    		read_stdinput(buf, user, msg);
 			send_message(user,msg);
     	}
     	else
