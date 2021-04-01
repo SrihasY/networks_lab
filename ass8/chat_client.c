@@ -1,5 +1,7 @@
 #include "chat.h"
 
+extern int server_port;
+extern struct sockaddr_in serv_addr;
 extern struct user_info user_info;
 
 void reset_timeout(struct timeval* timeout) {
@@ -23,10 +25,21 @@ void send_message(char* user, char* msg) {
     				printf("The client socket descriptor could not be created. Error:%d. Exiting...\n", errno);
 					exit(1);
     			}
+				int yes=1;
+                if(setsockopt(current->cli_sockfd,SOL_SOCKET,SO_REUSEADDR | SO_REUSEPORT,&yes,sizeof(int))==-1){
+                    printf("Error in port. Closing connection..\n");
+                    exit(1);
+                }
+                if(bind(current->cli_sockfd, (struct sockaddr*)&(serv_addr), sizeof(serv_addr))<0)
+                {
+                    printf("Unable to bind socket to server port %d. Error:%d. Exiting..\n", server_port, errno);
+                    exit(1);
+                }
     			if(connect(current->cli_sockfd, (struct sockaddr *) &current->peer_addr, sizeof(current->peer_addr))==-1){
 					if(errno==ECONNREFUSED) {
 						printf("The connection could not be made. The client may not be online.\n");
 						close(current->cli_sockfd);
+						current->cli_sockfd=-1;
 					} else {
 						printf("The connection could not be established. Error:%d. Exiting...\n", errno);
     			    	close(current->cli_sockfd);

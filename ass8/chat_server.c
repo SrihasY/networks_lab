@@ -10,6 +10,7 @@
 #include<netdb.h>
 #include<fcntl.h>
 #include<sys/select.h>
+#include<signal.h>
 
 #include "chat.h"
 
@@ -34,6 +35,16 @@ time_t min_time(time_t a, time_t b)
 	return b;
 }
 
+//signal handler for CTRL+C(interrupt)
+void sig_handler(int signo){
+    if(signo==SIGINT)
+    {
+        printf("\nClosing connection & ending process..\n");
+        close(serv_sockfd);
+        exit(0);
+    }
+}
+
 void print_user_info(void) {
     for(int i=0; i<user_info.number_peers; i++) {
         printf("Peer %d\n\tName: %s\n\tIP Address: %s\n\tPort: %u\n\n", i+1, user_info.table[i].username, user_info.table[i].ip, user_info.table[i].port);
@@ -53,6 +64,12 @@ void start_server(void) {
 		printf("The server socket descriptor could not be created. Error:%d. Exiting..\n",errno);
 		exit(1);
 	}
+
+	int yes=1;
+    if(setsockopt(serv_sockfd,SOL_SOCKET,SO_REUSEADDR | SO_REUSEPORT,&yes,sizeof(int))==-1){
+        printf("Error in port. Closing connection..\n");
+        exit(1);
+    }
 
     //bind the socket to the port in SERVPORT
 	if(bind(serv_sockfd, (struct sockaddr*)&serv_addr, sizeof(serv_addr))<0)
@@ -112,7 +129,7 @@ void accept_connection(void) {
     for(int i=0;i<user_info.number_peers;i++)
     {
     	struct user_entry* current = &(user_info.table[i]);
-    	if(cli_addr.sin_addr.s_addr==current->peer_addr.sin_addr.s_addr)
+    	if(cli_addr.sin_addr.s_addr==current->peer_addr.sin_addr.s_addr && cli_addr.sin_port==current->peer_addr.sin_port)
     	{
     		current->cli_sockfd = new_sockfd;
 			reset_timeout(&current->timeout);
@@ -182,6 +199,7 @@ int main(void) {
 		}
 		memset(current->peer_addr.sin_zero, '\0', sizeof(current->peer_addr.sin_zero));
     }
+	signal(SIGINT, sig_handler);
 	print_user_info();
     start_server();
 	
