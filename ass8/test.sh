@@ -3,9 +3,9 @@ sudo ip netns add P2
 sudo ip netns add P3
 sudo ip netns add P4
 
-sudo ip link add v1 netns P1 type veth peer v2 netns P4
-sudo ip link add v3 netns P2 type veth peer v4 netns P4
-sudo ip link add v5 netns P3 type veth peer v6 netns P4
+sudo ip link add v1 netns P1 type veth peer name v2 netns P4
+sudo ip link add v3 netns P2 type veth peer name v4 netns P4
+sudo ip link add v5 netns P3 type veth peer name v6 netns P4
 
 sudo ip netns exec P1 ip addr add 10.0.10.57/24 dev v1
 sudo ip netns exec P4 ip addr add 10.0.10.58/24 dev v2

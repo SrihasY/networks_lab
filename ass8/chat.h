@@ -13,18 +13,20 @@
 #define MAX_NAME 256
 #define TIMEOUT 100
 
+//entry of a peer user
 struct user_entry {
-    char username[MAX_NAME];
-    char ip[16];
-    uint16_t port;
-    int cli_sockfd;
-    struct sockaddr_in peer_addr;
-    struct timeval timeout;
+    char username[MAX_NAME];	//username
+    char ip[16];				//ip address of the peer's server
+    uint16_t port;				//port on which the server runs
+    int cli_sockfd;				//client socket corresponding to this server
+    struct sockaddr_in peer_addr;//complete socket address info
+    struct timeval timeout;		//timeout time for connection to this user
 };
 
+//user_info 
 struct user_info {
-    struct user_entry table[MAX_PEERS];
-    int number_peers;
+    struct user_entry table[MAX_PEERS];//array to store info of all peers
+    int number_peers;				   //no of peers
 };
 
 
