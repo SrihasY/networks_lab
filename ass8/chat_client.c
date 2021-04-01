@@ -40,6 +40,7 @@ void send_message(char* user, char* msg) {
 						printf("The connection could not be made. The client may not be online.\n");
 						close(current->cli_sockfd);
 						current->cli_sockfd=-1;
+						break;
 					} else {
 						printf("The connection could not be established. Error:%d. Exiting...\n", errno);
     			    	close(current->cli_sockfd);

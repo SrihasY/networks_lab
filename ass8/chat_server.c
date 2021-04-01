@@ -71,7 +71,7 @@ void start_server(void) {
         exit(1);
     }
 
-    //bind the socket to the port in SERVPORT
+    //bind the socket to the port in server_port
 	if(bind(serv_sockfd, (struct sockaddr*)&serv_addr, sizeof(serv_addr))<0)
 	{
 		printf("Unable to bind socket to server port %d. Error:%d. Exiting..\n", server_port, errno);
