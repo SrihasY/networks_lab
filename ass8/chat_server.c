@@ -204,6 +204,10 @@ int main(void) {
 	printf("Enter the filename to retrieve user_info and server details: ");
 	scanf("%s", filename);
 	FILE* uinfofile = fopen(filename, "r");
+	if(uinfofile==NULL) {
+		printf("Invalid input file.\n");
+		exit(1);
+	}
 	fscanf(uinfofile,"%s", server_ip);
 	fscanf(uinfofile,"%hu", &server_port);
     fscanf(uinfofile,"%d", &(user_info.number_peers));
