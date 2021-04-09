@@ -17,6 +17,7 @@ void reset_timeout(struct timeval* timeout) {
 
 //send a message read from stdin to corresponding user
 void send_message(char* user, char* msg) {
+	int user_exists = 0;
     int sent_size, len;
     //loop through all user_info table entries
     for(int i=0;i<user_info.number_peers;i++)
@@ -24,14 +25,14 @@ void send_message(char* user, char* msg) {
     	struct user_entry* current = &(user_info.table[i]);
     	//if username matched
     	if(strcmp(current->username,user)==0)
-    	{
+    	{	
+			user_exists = 1;
     		//if client socket does not exist
     		if(current->cli_sockfd<0)
     		{
     			//create client socket
     			if((current->cli_sockfd = socket(PF_INET, SOCK_STREAM,0))<0)
     			{
-
     				printf("The client socket descriptor could not be created. Error:%d. Exiting...\n", errno);
 					exit(1);
     			}
@@ -78,6 +79,10 @@ void send_message(char* user, char* msg) {
     		break;
     	}
     }
+	
+	if(!user_exists) {
+		printf("The username does not correspond to a peer.\n");
+	}
 }
 
 //receive message from users

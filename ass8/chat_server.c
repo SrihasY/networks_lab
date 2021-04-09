@@ -170,7 +170,7 @@ void read_stdinput(char* buf, char* user, char* msg) {
 	}
     //if message length larger than MAX_BUF discard characters after MAX_BUF
 	if(len==MAX_BUF && c!='\n') {
-		printf("Message input was longer than %d characters, it will be clipped.", MAX_BUF);
+		printf("Message input was longer than %d characters, it will be clipped.\n", MAX_BUF);
 		buf[len-1]=='\n';
 		while((c=getchar())!='\n') {
 			;
@@ -202,7 +202,11 @@ int main(void) {
 	char filename[256];//filename of the file in which information of port and peers is stored
     printf("**** Welcome to the P2P chat application ****\n");
 	printf("Enter the filename to retrieve user_info and server details: ");
-	scanf("%s", filename);
+	int f=0; char c;
+	while((c=getchar())!='\n') {
+		filename[f++] = c;
+	}
+	filename[f] = '\0';
 	FILE* uinfofile = fopen(filename, "r");
 	if(uinfofile==NULL) {
 		printf("Invalid input file.\n");
